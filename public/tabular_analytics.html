@@ -32,19 +32,17 @@
       <!-- Time Range Dropdown (left) -->
       <div class="filter_left">
         <select class="filter_select filter_timerange" id="analytics_timerange">
-          <option value="detailed" selected>Detailed Day</option>
           <option value="daily">Daily</option>
-          <option value="monthly">Monthly</option>
+          <option value="monthly">Montly</option>
           <option value="yearly">Yearly</option>
+          <option value="lifetime" selected>Lifetime</option>
         </select>
       </div>
 
       <!-- Year / Month / Day Dropdowns (right) -->
       <div class="filter_right">
         <select class="filter_select filter_time" id="analytics_year">
-          <option value="2026">2026</option>
-          <option value="2025">2025</option>
-          <option value="2024">2024</option>
+          
         </select>
 
         <select class="filter_select filter_time" id="analytics_month">
@@ -73,57 +71,18 @@
       <table class="data_table" id="analytics_table">
         <thead>
           <tr id="analytics_table_head">
-            <th>Sale ID</th>
-            <th>Time</th>
-            <th>Products</th>
-            <th>Price ($)</th>
-            <th>Profit ($)</th>
+            
           </tr>
         </thead>
         <tbody id="analytics_table_body">
-          <tr>
-            <td id="analytics_row_1_id">S1031</td>
-            <td id="analytics_row_1_time">14:15</td>
-            <td id="analytics_row_1_products">'Sweets Box (x2)', 'Cola'</td>
-            <td id="analytics_row_1_price">15.50</td>
-            <td id="analytics_row_1_profit">6.20</td>
-          </tr>
-          <tr>
-            <td id="analytics_row_2_id">S1032</td>
-            <td id="analytics_row_2_time">14:18</td>
-            <td id="analytics_row_2_products">'Bread', 'Butter'</td>
-            <td id="analytics_row_2_price">5.00</td>
-            <td id="analytics_row_2_profit">2.10</td>
-          </tr>
-          <tr>
-            <td id="analytics_row_3_id">S1033</td>
-            <td id="analytics_row_3_time">14:21</td>
-            <td id="analytics_row_3_products">'Sweets Box (x2)'</td>
-            <td id="analytics_row_3_price">12.00</td>
-            <td id="analytics_row_3_profit">3.70</td>
-          </tr>
-          <tr>
-            <td id="analytics_row_4_id">S1034</td>
-            <td id="analytics_row_4_time">14:17</td>
-            <td id="analytics_row_4_products">'Sweets Box (x2)', 'Cola'</td>
-            <td id="analytics_row_4_price">15.50</td>
-            <td id="analytics_row_4_profit">6.20</td>
-          </tr>
-          <tr>
-            <td id="analytics_row_5_id">S1035</td>
-            <td id="analytics_row_5_time">14:29</td>
-            <td id="analytics_row_5_products">'Sweets Box (x2)', 'Cola'</td>
-            <td id="analytics_row_5_price">15.50</td>
-            <td id="analytics_row_5_profit">6.20</td>
-          </tr>
+         
+         
         </tbody>
 
         <!-- TOTALS ROW -->
         <tfoot>
-          <tr class="table_totals_row">
-            <td colspan="3">DAILY AGGREGATE TOTAL</td>
-            <td id="analytics_total_price">$1,412.75</td>
-            <td id="analytics_total_profit">$565.10</td>
+          <tr class="table_totals_row" id="table_totals_row">
+            
           </tr>
         </tfoot>
 

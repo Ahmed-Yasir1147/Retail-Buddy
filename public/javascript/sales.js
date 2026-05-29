@@ -235,20 +235,24 @@ function createSale() {
 }
 
 function fetchTodaySales() {
-    fetch(saleEndpoint, { method: "GET" }).then((response) => {
+    const now = new Date();
+    const endpoint = `${saleEndpoint}?year=${now.getFullYear()}&month=${now.getMonth() + 1}&day=${now.getDate()}`;
+    fetch(endpoint, { method: "GET" }).then((response) => {
         if (response.ok) {
             return response.json();
         } else {
             console.log("Sales fetch failed");
         }
-    }).then((response) => {
+    }).then((json) => {
         /*
           Reponse structure:
-          { sales: [{_id: , products: , price: , profit: , time: }], 
-            summary: {totalPrice: , totalProfit: }}
+          { 
+            sales: [{_id: , products: , price: , profit: , time: }], 
+            summary: {totalSales: , totalProfit: }
+          }
         */
         salesTableBody.innerHTML = "";
-        for (const sale of response.sales) {
+        for (const sale of json.sales) {
             /* Structure of tr element:
               Five tds for Id, Time, Products, Price, Profit
             */
@@ -280,8 +284,8 @@ function fetchTodaySales() {
             tr.appendChild(profit);
             salesTableBody.appendChild(tr);
         }
-        salesTotalPrice.textContent = response.summary.totalPrice;
-        salesTotalProfit.textContent = response.summary.totalProfit;
+        salesTotalPrice.textContent = json.summary.totalPrice;
+        salesTotalProfit.textContent = json.summary.totalProfit;
     }).catch((error) => {
         console.log(error);
     });

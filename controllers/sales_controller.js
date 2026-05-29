@@ -48,11 +48,178 @@ export const getTodaySales = async (req, res, next) => {
         const now = new Date();
         const result = await sales.find({ createdAt: { $gte: today, $lte: now } }).lean();
         const summary = await sales.aggregate([
-            { $match: { createdAt: { $gte: today, $lte: now } } }, 
+            { $match: { createdAt: { $gte: today, $lte: now } } },
             { $group: { _id: null, totalPrice: { $sum: "$price" }, totalProfit: { $sum: "$profit" } } }]);
         res.status(200).json({ sales: result, summary: summary[0] });
     } catch (error) {
-        console.log(error);
         return next(createError("Getting sales failed", 500))
     }
+}
+
+// Fetch sales
+// Either lifetime, yearwise, monthwise or daywise
+export const getSales = async (req, res, next) => {
+    try {
+        let result;
+        const query = req.query;
+        const year = parseInt(query.year);
+        const month = parseInt(query.month);
+        const day = parseInt(query.day);
+        // If all year, month and day are present user want all records of that specific day
+        // If only year and month, all days of that month
+        // If only year, all months of that year
+        // If none, all years of lifetime
+        // We return two things: raw sales + summary (total sales and profit)
+        if (year && month && day) {
+            result = (await sales.aggregate([
+                {
+                    // Adding a new field: dateParts: {year: , month: , day: , ...}
+                    $addFields: { dateParts: { $dateToParts: { date: "$createdAt" } } }
+                },
+                {
+                    $match:
+                        { "dateParts.year": year, "dateParts.month": month, "dateParts.day": day }
+                },
+                {
+                    // we need raw sales + summary so two set of operations are required
+                    $facet: {
+                        sales: [],
+                        summary: [
+                            { $group: { _id: null, totalPrice: { $sum: "$price" }, totalProfit: { $sum: "$profit" } } }
+                        ]
+                    }
+                }
+            ]))[0];
+        } else if (year && month) {
+            result = (await sales.aggregate([
+                { $addFields: { dateParts: { $dateToParts: { date: "$createdAt" } } } },
+                { $match: { "dateParts.year": year, "dateParts.month": month } },
+                { $group: { _id: "$dateParts.day", price: { $sum: "$price" }, profit: { $sum: "$profit" } } },
+                // renaming _id to day
+                { $project: { _id: 0, price: 1, profit: 1, day: "$_id" } },
+                {
+                    $facet: {
+                        sales: [],
+                        summary: [{ $group: { _id: null, totalPrice: { $sum: "$price" }, totalProfit: { $sum: "$profit" } } }
+                        ]
+                    }
+                },
+            ]))[0];
+            // The days which don't have data are not present. So we are creating new sales 
+            // with 0 profit and sales for missing days
+            const s = [];
+            const days = result.sales.map((sale) => sale.day);
+            for (let i = 1; i <= getDays(month, year); i++) {
+                if (days.includes(i)) {
+                    s.push(result.sales.find((sale) => sale.day == i));
+                } else {
+                    s.push({ day: i, price: 0, profit: 0 });
+                }
+            }
+            result.sales = s;
+        } else if (year) {
+            result = (await sales.aggregate([
+                { $addFields: { dateParts: { $dateToParts: { date: "$createdAt" } } } },
+                { $match: { "dateParts.year": year } },
+                { $group: { _id: "$dateParts.month", price: { $sum: "$price" }, profit: { $sum: "$profit" } } },
+                { $project: { _id: 0, price: 1, profit: 1, month: "$_id" } },
+                {
+                    $facet: {
+                        sales: [],
+                        summary: [{ $group: { _id: null, totalPrice: { $sum: "$price" }, totalProfit: { $sum: "$profit" } } }
+                        ]
+                    }
+                },
+            ]))[0];
+            // The months which don't have data are not present. So we are creating new sales 
+            // with 0 profit and sales for missing months
+            // Also mapping month number to month name
+            const s = [];
+            const months = result.sales.map((sale) => sale.month);
+            for (let i = 1; i <= 12; i++) {
+                if (months.includes(i)) {
+                    const sale = result.sales.find((sale) => sale.month == i);
+                    s.push({ month: getMonthName(sale.month), price: sale.price, profit: sale.profit });
+                } else {
+                    s.push({ month: getMonthName(i), price: 0, profit: 0 });
+                }
+            }
+            result.sales = s;
+        } else {
+            result = (await sales.aggregate([
+                { $addFields: { dateParts: { $dateToParts: { date: "$createdAt" } } } },
+                { $group: { _id: "$dateParts.year", price: { $sum: "$price" }, profit: { $sum: "$profit" } } },
+                { $project: { _id: 0, price: 1, profit: 1, year: "$_id" } },
+                {
+                    $facet: {
+                        sales: [],
+                        summary: [{ $group: { _id: null, totalPrice: { $sum: "$price" }, totalProfit: { $sum: "$profit" } } }
+                        ]
+                    }
+                },
+            ]))[0];
+        }
+        // when there is no data, summary is empty
+        result.summary = result.summary[0] || {
+            totalPrice: 0,
+            totalProfit: 0
+        };
+        res.status(200).json(result);
+    } catch (error) {
+        return next(createError(error, 500))
+    }
+}
+
+// Fetch years 
+export const getYears = async (req, res, next) => {
+    try {
+        const result = await sales.aggregate([
+            { $addFields: { dateParts: { $dateToParts: { date: "$createdAt" } } } },
+            { $group: { _id: "$dateParts.year", year: { $first: "$dateParts.year" } } },
+        ]);
+        res.status(200).json(result);
+    } catch (error) {
+        return next(createError("Getting years failed", 500))
+    }
+}
+
+
+function getDays(month, year) {
+    let days = 31;
+    switch (month) {
+        case 2:
+            // checking for leap year for February
+            if ((year % 4 == 0 && year % 100 != 0) || (year % 400 == 0)) {
+                days = 29;
+            } else {
+                days = 28;
+            }
+            break;
+        case 4:
+        case 6:
+        case 9:
+        case 11:
+            days = 30;
+    }
+    return days;
+}
+
+function getMonthName(month) {
+    const months = [
+        "",
+        "January",
+        "February",
+        "March",
+        "April",
+        "May",
+        "June",
+        "July",
+        "August",
+        "September",
+        "October",
+        "November",
+        "December"
+    ];
+
+    return months[month];
 }
