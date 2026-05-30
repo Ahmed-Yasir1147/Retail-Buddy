@@ -48,3 +48,27 @@ export const deleteProduct = async (req, res, next) => {
         return next(createError("Deletion failed", 500));
     }
 }
+
+// UPDATE: Update the given product
+export const updateProduct = async (req, res, next) => {
+    try {
+        const id = req.params.id;
+        const name = req.body.name;
+        const price = req.body.price;
+        const cost = req.body.cost;
+        const stock = req.body.stock;
+        if (id && name != null && price != null && cost != null && stock != null) {
+            const p = await product.findById(id);
+            p.name = name;
+            p.price = price;
+            p.cost = cost;
+            p.stock = stock;
+            await p.save();
+            res.status(200).json(p);
+        } else {
+            return next(createError("Missing parameters", 400));
+        }
+    } catch (error) {
+        return next(createError(error, 500));
+    }
+}

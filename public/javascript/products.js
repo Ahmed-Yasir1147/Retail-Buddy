@@ -1,19 +1,26 @@
 const showProductDialogBtn = document.querySelector("#show_product_dialog_btn");
 const productDialog = document.querySelector("#product_dialog");
+const productDialogTitle = document.querySelector("#product_dialog_title");
 const cancelProductBtn = document.querySelector("#product_dialog_cancel");
-const createProductBtn = document.querySelector("#product_dialog_create");
+const createEditProductBtn = document.querySelector("#product_dialog_create_edit");
 const productName = document.querySelector("#product_name");
 const productPrice = document.querySelector("#product_price");
 const productCost = document.querySelector("#product_cost");
 const productStock = document.querySelector("#product_stock");
-const createProductForm = document.querySelector("#create_product_form");
+const productForm = document.querySelector("#create_product_form");
 const productTableBody = document.querySelector("#product_table_body");
 const baseUrl = "http://localhost:8000";
 const url = `${baseUrl}/api/products`;
 
 fetchProducts();
 
+// product dialog and it's button have to be used for both
+// creating and editing products
+// we update title, btn text and event listener everytime before usage
 showProductDialogBtn.addEventListener("click", () => {
+    productDialogTitle.textContent = "Add product";
+    createEditProductBtn.textContent = "Create";
+    productForm.addEventListener("submit", createProduct, { once: true });
     productDialog.showModal();
 });
 
@@ -22,7 +29,6 @@ cancelProductBtn.addEventListener("click", () => {
 });
 
 
-createProductForm.addEventListener("submit", createProduct);
 
 function fetchProducts() {
     fetch(url, {
@@ -53,6 +59,10 @@ function fetchProducts() {
             buttons.classList.add("action_buttons");
             const editButton = document.createElement("button");
             editButton.classList.add("btn_edit");
+            editButton.addEventListener("click", (event) => {
+                event.preventDefault();
+                editProduct(product)
+            });
             editButton.textContent = "Edit";
             const deleteButton = document.createElement("button");
             deleteButton.classList.add("btn_delete");
@@ -80,15 +90,12 @@ function deleteProduct(id) {
         fetch(`${url}/${id}`, {
             method: "DELETE"
         }).then((response) => {
-            console.log(response);
             if (response.ok) {
-                console.log("Deletion successful");
                 fetchProducts();
             } else {
                 throw new Error("Product deletion failed");
             }
         }).catch((error) => {
-            console.log("fuck");
             console.error(error);
         });
     }
@@ -96,12 +103,10 @@ function deleteProduct(id) {
 
 function createProduct(event) {
     event.preventDefault();
-        console.log(productStock);
     const name = productName.value;
     const price = parseFloat(productPrice.value);
     const cost = parseFloat(productCost.value);
     const stock = parseInt(productStock.value);
-    console.log(stock);
 
     // cost can't be greater than price
     if (cost > price) {
@@ -129,12 +134,67 @@ function createProduct(event) {
                 productPrice.value = "";
                 productCost.value = "";
                 productStock.value = "";
+            } else {
+                throw new Error("Product creation failed");
             }
         }).catch((error) => {
             console.error(error);
         });
     }
 }
+
+function editProduct(product) {
+    // setting dialog for editing
+    productDialogTitle.textContent = "Edit product";
+    createEditProductBtn.textContent = "Edit";
+    // adding the existing value of properties of product
+    productName.value = product.name;
+    productPrice.value = product.price;
+    productCost.value = product.cost;
+    productStock.value = product.stock;
+    productForm.addEventListener("submit", (event) => {
+        event.preventDefault();
+        const name = productName.value;
+        const price = parseFloat(productPrice.value);
+        const cost = parseFloat(productCost.value);
+        const stock = parseInt(productStock.value);
+        if (cost > price) {
+            alert("Cost of product can't be greater than price!");
+        } else {
+            fetch(`${url}/${product._id}`, {
+                method: "PUT",
+                headers: {
+                    "Content-Type": "application/json"
+                },
+                body:
+                    JSON.stringify(
+                        {
+                            name: name,
+                            price: price,
+                            cost: cost,
+                            stock: stock
+                        }
+                    )
+
+            }).then((response) => {
+                if (response.ok) {
+                    fetchProducts();
+                    productDialog.close();
+                    productName.value = "";
+                    productPrice.value = "";
+                    productCost.value = "";
+                    productStock.value = "";
+                } else {
+                    throw new Error("Product updation failed");
+                }
+            }).catch((error) => {
+                console.error(error);
+            });
+        }
+    }, { once: true });
+    productDialog.showModal();
+}
+
 
 
 

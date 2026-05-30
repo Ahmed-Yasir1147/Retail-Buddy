@@ -7,7 +7,7 @@ export const insertSale = async (req, res, next) => {
     // Structure of products   {{"id": "", "quantity": "", "name": ""}, ...}
     const products = req.body.products;
     const ids = products.map((product) => product.id);
-    if (products) {
+    if (products != null) {
         try {
             // We first fetch the products because we need price and profit
             const fetchedProducts = await product.find({ _id: { $in: ids } });
@@ -70,7 +70,7 @@ export const getSales = async (req, res, next) => {
         // If only year, all months of that year
         // If none, all years of lifetime
         // We return two things: raw sales + summary (total sales and profit)
-        if (year && month && day) {
+        if (year != null && month != null && day != null) {
             result = (await sales.aggregate([
                 {
                     // Adding a new field: dateParts: {year: , month: , day: , ...}
@@ -90,7 +90,7 @@ export const getSales = async (req, res, next) => {
                     }
                 }
             ]))[0];
-        } else if (year && month) {
+        } else if (year != null && month != null) {
             result = (await sales.aggregate([
                 { $addFields: { dateParts: { $dateToParts: { date: "$createdAt" } } } },
                 { $match: { "dateParts.year": year, "dateParts.month": month } },
@@ -117,7 +117,7 @@ export const getSales = async (req, res, next) => {
                 }
             }
             result.sales = s;
-        } else if (year) {
+        } else if (year != null) {
             result = (await sales.aggregate([
                 { $addFields: { dateParts: { $dateToParts: { date: "$createdAt" } } } },
                 { $match: { "dateParts.year": year } },
